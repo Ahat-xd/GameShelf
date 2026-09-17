@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Trophy, 
   Gamepad2, 
@@ -13,16 +13,20 @@ import {
   Zap, 
   Share2, 
   Award,
-  BarChart2
+  BarChart2,
+  Pencil,
+  Camera
 } from 'lucide-react';
 import { AchievementBadge, Game, UserProfile } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { EditProfileModal } from './EditProfileModal';
 
 interface ProfileViewProps {
   user: UserProfile;
   achievements: AchievementBadge[];
   games: Game[];
   onOpenCreateReview: () => void;
+  onUpdateUser: (updatedUser: UserProfile) => void;
 }
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
@@ -39,8 +43,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   achievements,
   games,
   onOpenCreateReview,
+  onUpdateUser,
 }) => {
   const { isDark } = useTheme();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const completedGames = games.filter(g => g.status === 'completed');
   const playingGames = games.filter(g => g.status === 'playing');
   const droppedGames = games.filter(g => g.status === 'dropped');
@@ -65,67 +72,153 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     <div className="max-w-5xl mx-auto space-y-6">
       
       {/* Profile Header Hero */}
-      <div className={`rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden border transition-colors ${
-        isDark 
-          ? 'bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-slate-800' 
-          : 'bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-white border-indigo-100 shadow-md'
+      <div className={`rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden border transition-all ${
+        user.bannerGradient
+          ? `bg-gradient-to-r ${user.bannerGradient} border-slate-700/50 text-white`
+          : isDark 
+            ? 'bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-slate-800' 
+            : 'bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-white border-indigo-100 shadow-md'
       }`}>
         <div className="absolute right-0 top-0 w-96 h-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+        {user.bannerGradient && (
+          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px] pointer-events-none" />
+        )}
         
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            <div className="relative">
+            <div 
+              className="relative group cursor-pointer flex-shrink-0"
+              onClick={() => setIsEditModalOpen(true)}
+              title="Кликните, чтобы сменить аватарку или отредактировать профиль"
+            >
               <img
                 src={user.avatar}
                 alt={user.name}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-4 ring-indigo-500/50 shadow-xl"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-4 ring-indigo-500/50 shadow-xl group-hover:brightness-90 transition-all"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&w=256&q=80';
+                }}
               />
+              <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white text-[10px] font-bold gap-0.5">
+                <Camera className="w-5 h-5 drop-shadow" />
+                <span>Изменить</span>
+              </div>
               <span className="absolute -bottom-2 -right-2 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold text-[11px] rounded-lg shadow-md border border-amber-300">
                 LVL {user.level}
               </span>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className={`font-display text-2xl sm:text-3xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h1 className={`font-display text-2xl sm:text-3xl font-extrabold ${user.bannerGradient ? 'text-white' : isDark ? 'text-white' : 'text-slate-900'}`}>
                   {user.name}
                 </h1>
                 <span className="text-xs text-slate-400 font-mono">
                   {user.tag}
                 </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                  isDark 
-                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' 
-                    : 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                  user.bannerGradient
+                    ? 'bg-white/20 text-white border-white/30 backdrop-blur-sm'
+                    : isDark 
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' 
+                      : 'bg-indigo-100 text-indigo-700 border-indigo-200'
                 }`}>
                   {user.title}
                 </span>
               </div>
-              <p className={`text-xs sm:text-sm max-w-xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+
+              <p className={`text-xs sm:text-sm max-w-xl ${user.bannerGradient ? 'text-slate-200' : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {user.bio}
               </p>
+
+              {/* Extra Badges: Platform, Genre, Socials */}
+              {(user.favoritePlatform || user.favoriteGenre || user.discordTag || user.telegramTag) && (
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                  {user.favoritePlatform && (
+                    <span className={`px-2.5 py-0.5 rounded-lg font-medium border flex items-center gap-1.5 ${
+                      user.bannerGradient
+                        ? 'bg-white/10 border-white/20 text-white'
+                        : isDark ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+                    }`}>
+                      <Gamepad2 className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>{user.favoritePlatform}</span>
+                    </span>
+                  )}
+                  {user.favoriteGenre && (
+                    <span className={`px-2.5 py-0.5 rounded-lg font-medium border flex items-center gap-1.5 ${
+                      user.bannerGradient
+                        ? 'bg-white/10 border-white/20 text-white'
+                        : isDark ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+                    }`}>
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{user.favoriteGenre}</span>
+                    </span>
+                  )}
+                  {user.discordTag && (
+                    <span className={`px-2.5 py-0.5 rounded-lg font-mono text-[11px] border ${
+                      user.bannerGradient
+                        ? 'bg-white/10 border-white/20 text-white'
+                        : isDark ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    }`}>
+                      Discord: {user.discordTag}
+                    </span>
+                  )}
+                  {user.telegramTag && (
+                    <span className={`px-2.5 py-0.5 rounded-lg font-mono text-[11px] border ${
+                      user.bannerGradient
+                        ? 'bg-white/10 border-white/20 text-white'
+                        : isDark ? 'bg-sky-950/40 border-sky-500/30 text-sky-300' : 'bg-sky-50 border-sky-200 text-sky-700'
+                    }`}>
+                      TG: {user.telegramTag}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <button
-            onClick={onOpenCreateReview}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-500/25 transition-all self-start md:self-auto active:scale-95"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Написать AI-обзор</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+            <button
+              id="btn-open-edit-profile"
+              onClick={() => setIsEditModalOpen(true)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl border transition-all active:scale-95 ${
+                user.bannerGradient
+                  ? 'bg-white/20 hover:bg-white/30 border-white/30 text-white backdrop-blur-sm'
+                  : isDark
+                    ? 'bg-slate-800/90 hover:bg-slate-750 border-slate-700 text-slate-200'
+                    : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800 shadow-xs'
+              }`}
+            >
+              <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Редактировать профиль</span>
+            </button>
+
+            <button
+              onClick={onOpenCreateReview}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-500/25 transition-all active:scale-95"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Написать AI-обзор</span>
+            </button>
+          </div>
 
         </div>
 
         {/* Level XP Progress */}
-        <div className={`mt-6 pt-5 border-t ${isDark ? 'border-slate-800/80' : 'border-slate-200'}`}>
+        <div className={`mt-6 pt-5 border-t ${
+          user.bannerGradient ? 'border-white/20' : isDark ? 'border-slate-800/80' : 'border-slate-200'
+        }`}>
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className={`font-semibold flex items-center gap-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+            <span className={`font-semibold flex items-center gap-1.5 ${
+              user.bannerGradient ? 'text-white' : isDark ? 'text-slate-300' : 'text-slate-700'
+            }`}>
               <Flame className="w-4 h-4 text-orange-500" />
-              Прогресс геймерского ранга: <strong className={isDark ? 'text-white' : 'text-slate-900'}>Уровень {user.level}</strong>
+              Прогресс геймерского ранга: <strong className={user.bannerGradient ? 'text-white' : isDark ? 'text-white' : 'text-slate-900'}>Уровень {user.level}</strong>
             </span>
-            <span className={`font-mono font-semibold ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+            <span className={`font-mono font-semibold ${
+              user.bannerGradient ? 'text-white' : isDark ? 'text-indigo-300' : 'text-indigo-600'
+            }`}>
               {user.xp} / {user.nextLevelXp} XP ({xpPercentage}%)
             </span>
           </div>
@@ -357,6 +450,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={onUpdateUser}
+        user={user}
+      />
 
     </div>
   );

@@ -376,7 +376,26 @@ export default function App() {
     awardXp(25);
   };
 
-  // 9. Add Recommended Game to Shelf
+  // 9. Update User Profile
+  const handleUpdateUser = (updatedUser: UserProfile) => {
+    setUser(updatedUser);
+    // Sync updated name/avatar/tag in user's posts in feed
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (post.authorTag === user.tag || post.authorName === user.name) {
+          return {
+            ...post,
+            authorName: updatedUser.name,
+            authorTag: updatedUser.tag,
+            authorAvatar: updatedUser.avatar,
+          };
+        }
+        return post;
+      })
+    );
+  };
+
+  // 10. Add Recommended Game to Shelf
   const handleAddRecommendedGameToShelf = (rec: RecommendationItem, status: ShelfStatus) => {
     const newGame: Game = {
       id: `game-rec-${Date.now()}`,
@@ -472,6 +491,7 @@ export default function App() {
             achievements={achievements}
             games={games}
             onOpenCreateReview={() => setCurrentTab('review-gen')}
+            onUpdateUser={handleUpdateUser}
           />
         )}
 

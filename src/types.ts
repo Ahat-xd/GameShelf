@@ -81,6 +81,12 @@ export interface UserProfile {
   nextLevelXp: number;
   title: string;
   bio: string;
+  favoritePlatform?: Platform;
+  favoriteGenre?: string;
+  discordTag?: string;
+  telegramTag?: string;
+  bannerGradient?: string;
+  bannerUrl?: string;
   monthlyStats: {
     monthName: string;
     completedGames: number;
