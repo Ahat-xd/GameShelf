@@ -1,0 +1,6 @@
+{
+  "name": "GameShelf — Backlog & AI Diary",
+  "description": "Виртуальная полка игр, трекинг времени и платформ, AI-генератор обзоров в геймерском стиле, лента друзей с реакциями GG и умные рекомендации.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
